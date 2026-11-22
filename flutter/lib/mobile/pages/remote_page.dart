@@ -146,6 +146,11 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
         .changeCurrentKey(MessageKey(widget.id, ChatModel.clientModeID));
     _blockableOverlayState.applyFfi(gFFI);
     gFFI.imageModel.addCallbackOnFirstImage((String peerId) {
+      // Sync the cursor menu state with the session option, as desktop does
+      // after FFI.start. Otherwise it always starts as "off" on mobile.
+      ShowRemoteCursorState.find(widget.id).value =
+          bind.sessionGetToggleOptionSync(
+              sessionId: sessionId, arg: 'show-remote-cursor');
       gFFI.recordingModel
           .updateStatus(bind.sessionGetIsRecording(sessionId: gFFI.sessionId));
       if (gFFI.recordingModel.start) {
@@ -757,7 +762,10 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
             ),
           ];
           if (showCursorPaint) {
-            paints.add(CursorPaint(widget.id));
+            // Respect the "Show remote cursor" toggle on Android/iOS.
+            paints.add(Obx(() => ShowRemoteCursorState.find(widget.id).isTrue
+                ? CursorPaint(widget.id)
+                : const Offstage()));
           }
           if (gFFI.ffiModel.touchMode) {
             paints.add(FloatingMouse(
